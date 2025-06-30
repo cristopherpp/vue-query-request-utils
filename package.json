@@ -41,6 +41,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/my-vue-query-get.git"
+    "url": "https://github.com/cristophdev/use-get-vue-query.git"
   }
 }
