@@ -6,7 +6,10 @@ import vue from "@vitejs/plugin-vue"
 export default defineConfig({
   plugins: [
     vue(),
-    dts({ insertTypesEntry: true }),
+    dts({
+      insertTypesEntry: true,
+      outDir: 'dist'
+    }),
   ],
   build: {
     lib: {
@@ -14,6 +17,7 @@ export default defineConfig({
       name: 'VueQueryGet',
       fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`,
     },
+    outDir: 'dist',
     rollupOptions: {
       external: ['vue', '@tanstack/vue-query'],
       output: {

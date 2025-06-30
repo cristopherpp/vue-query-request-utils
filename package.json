@@ -1,8 +1,13 @@
 {
-  "name": "usegetquery",
+  "name": "use-get-vue-query",
   "version": "1.0.0",
   "description": "A Vue composable for simplified GET requests with @tanstack/vue-query",
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
