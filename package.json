@@ -1,6 +1,6 @@
 {
   "name": "use-get-vue-query",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Vue composable for simplified GET requests with @tanstack/vue-query",
   "main": "dist/index.js",
   "module": "dist/index.js",
