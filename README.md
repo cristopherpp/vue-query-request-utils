@@ -18,4 +18,4 @@ Easily fetch data from APIs with built-in caching, loading states, and error han
 ## 📦 Installation
 
 ```bash
-npm install usegetquery
+npm install use-get-vue-query
