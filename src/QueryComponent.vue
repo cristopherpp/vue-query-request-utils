@@ -7,7 +7,7 @@
 
 <script setup lang="ts">
 import axios from "axios";
-import useGet from "./useGetQuery.ts";
+import useGet from "./useGetQuery";
 import { watch, ref } from "vue";
 
 interface Cat {
