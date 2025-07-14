@@ -5,7 +5,7 @@ this is right, i think this is everything i need for now:
 [![Build Status](https://github.com/cristophdev/vue-query-request-utils/actions/workflows/ci.yml/badge.svg)](https://github.com/cristophdev/vue-query-request-utils/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A set of **Vue 3 composables** for simplified HTTP requests (GET, POST, PUT, PATCH, DELETE) using [@tanstack/vue-query](https://tanstack.com/query/latest/docs/framework/vue/overview) and Axios.  
+A set of **Vue 3 composables** for simplified HTTP requests (GET, POST, PUT, PATCH, DELETE) using [@tanstack/vue-query](https://tanstack.com/query/latest/docs/framework/vue/overview) and Axios.
 Effortlessly fetch and mutate data with built-in caching, loading states, error handling, and TypeScript support. Perfect for Vue 3 and Nuxt 3 projects.
 
 ---
@@ -39,7 +39,7 @@ pnpm add vue-query-request-utils
 Ensure the following dependencies are installed in your project:
 
 ```bash
-npm install @tanstack/vue-query axios vue
+npm install @tanstack/vue-query@^5.0.0 axios@1.10.0 vue@^3.0.0
 ```
 ## 🚀 Usage
 

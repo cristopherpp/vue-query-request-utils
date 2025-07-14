@@ -1,1 +1,2 @@
-export { default as useGetQuery } from "./useGetQuery"
+export * from "./useGetQuery";
+export * from "./useSendMutation";
