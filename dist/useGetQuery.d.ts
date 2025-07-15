@@ -25,10 +25,10 @@ type UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
  *
  * @throws {Error} If the API URL is invalid.
  */
-export default function useGet<TQueryFnData, TError = Error, TData = NonFunctionGuard<TQueryFnData>, TQueryKey extends QueryKey = QueryKey>({ API, apiUrl, queryKey, options, paramRef, }: {
-    API: AxiosInstance;
-    apiUrl: string;
+export default function useGet<TQueryFnData, TError = Error, TData = NonFunctionGuard<TQueryFnData>, TQueryKey extends QueryKey = QueryKey>({ url, queryKey, API, options, paramRef, }: {
+    url: string;
     queryKey: MaybeRefOrGetter<TQueryKey>;
+    API?: AxiosInstance;
     options?: Omit<UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">;
     paramRef?: {
         [key: string]: string | number | boolean | (string | number | boolean)[];

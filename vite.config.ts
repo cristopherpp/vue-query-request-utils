@@ -1,29 +1,29 @@
-import { defineConfig } from 'vite';
-import dts from 'vite-plugin-dts';
-import { resolve } from 'path';
-import vue from "@vitejs/plugin-vue"
+import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
+import { resolve } from "path";
+import vue from "@vitejs/plugin-vue";
 
 export default defineConfig({
   plugins: [
     vue(),
     dts({
       insertTypesEntry: true,
-      outDir: 'dist'
+      outDir: "dist",
     }),
   ],
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/index.ts'),
-      name: 'VueQueryGet',
-      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'js'}`,
+      entry: resolve(__dirname, "src/index.ts"),
+      name: "VueQueryRequestUtils",
+      fileName: (format) => `index.${format === "es" ? "mjs" : "js"}`,
     },
-    outDir: 'dist',
+    outDir: "dist",
     rollupOptions: {
-      external: ['vue', '@tanstack/vue-query'],
+      external: ["vue", "@tanstack/vue-query", "axios"],
       output: {
         globals: {
-          vue: 'Vue',
-          '@tanstack/vue-query': 'VueQuery',
+          vue: "Vue",
+          "@tanstack/vue-query": "VueQuery",
         },
       },
     },
@@ -34,10 +34,10 @@ export default defineConfig({
     deps: {
       optimizer: {
         web: {
-          include: ['@tanstack/vue-query', 'vue'],
+          include: ["@tanstack/vue-query", "vue"],
         },
       },
     },
-    setupFiles: ["src/QueryComponent.vue"]
-  }
+    setupFiles: ["src/QueryComponent.vue"],
+  },
 });

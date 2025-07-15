@@ -1,5 +1,5 @@
 {
-  "name": "use-get-vue-query",
+  "name": "vue-query-request-utils",
   "version": "1.0.1",
   "description": "A Vue composable for simplified GET requests with @tanstack/vue-query",
   "main": "dist/index.js",
@@ -33,14 +33,22 @@
   "keywords": [
     "vue",
     "vue-query",
-    "tanstack",
-    "api",
-    "get"
+    "tanstack-query",
+    "axios",
+    "http",
+    "api-client",
+    "vue-composable",
+    "vue-plugin",
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete"
   ],
-  "author": "cristophdev",
+  "author": "cristopherpp",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cristophdev/use-get-vue-query.git"
+    "url": "https://github.com/cristopherpp/vue-query-request-utils.git"
   }
 }
