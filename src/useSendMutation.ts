@@ -1,41 +1,59 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/vue-query";
 import { AxiosInstance, type AxiosRequestConfig } from "axios";
+import { useApi } from "./useApi";
 
-type HttpMethod = 'post' | 'put' | 'patch' | 'delete';
+type HttpMethod = "post" | "put" | "patch" | "delete";
 
 export default function useSend<TData, TRequest = void, TError = Error>({
-  API,
   method,
   url,
+  API,
   requestConfig,
   options,
   mutationKey,
 }: {
-  API: AxiosInstance
   method: HttpMethod;
   url: string;
+  API?: AxiosInstance;
   requestConfig?: AxiosRequestConfig;
   options?: UseMutationOptions<TData, TError, TRequest, unknown>;
   mutationKey?: string | string[];
 }) {
+  // Vue injection
+  const apiInstance = useApi();
+  const currentApi = API ?? apiInstance;
+
+  if (!currentApi) {
+    throw new Error(
+      "No Axios instance provided. Either pass API param or install your API plugin.",
+    );
+  }
+
   return useMutation<TData, TError, TRequest, unknown>({
-    mutationKey: mutationKey ? (Array.isArray(mutationKey) ? mutationKey : [mutationKey]) : undefined,
+    mutationKey: mutationKey
+      ? Array.isArray(mutationKey)
+        ? mutationKey
+        : [mutationKey]
+      : undefined,
     mutationFn: async (data: TRequest) => {
       let response;
       const payload = data ?? {};
 
       switch (method) {
-        case 'post':
-          response = await API.post<TData>(url, payload, requestConfig);
+        case "post":
+          response = await currentApi.post<TData>(url, payload, requestConfig);
           break;
-        case 'put':
-          response = await API.put<TData>(url, payload, requestConfig);
+        case "put":
+          response = await currentApi.put<TData>(url, payload, requestConfig);
           break;
-        case 'patch':
-          response = await API.patch<TData>(url, payload, requestConfig);
+        case "patch":
+          response = await currentApi.patch<TData>(url, payload, requestConfig);
           break;
-        case 'delete':
-          response = await API.delete<TData>(url, payload);
+        case "delete":
+          response = await currentApi.delete<TData>(url, {
+            ...requestConfig,
+            data: payload,
+          });
           break;
         default:
           throw new Error(`Método HTTP no soportado: ${method}`);
@@ -44,5 +62,5 @@ export default function useSend<TData, TRequest = void, TError = Error>({
       return response.data;
     },
     ...options,
-  })
+  });
 }

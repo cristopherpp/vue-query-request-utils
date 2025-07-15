@@ -33,9 +33,17 @@
   "keywords": [
     "vue",
     "vue-query",
-    "tanstack",
-    "api",
-    "get"
+    "tanstack-query",
+    "axios",
+    "http",
+    "api-client",
+    "vue-composable",
+    "vue-plugin",
+    "get",
+    "post",
+    "put",
+    "patch",
+    "delete"
   ],
   "author": "cristopherpp",
   "license": "MIT",

@@ -2,7 +2,6 @@ import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 import { resolve } from "path";
 import vue from "@vitejs/plugin-vue";
-import axios from "axios";
 
 export default defineConfig({
   plugins: [
@@ -18,7 +17,6 @@ export default defineConfig({
       name: "VueQueryRequestUtils",
       fileName: (format) => `index.${format === "es" ? "mjs" : "js"}`,
     },
-    outDir: "dist",
     rollupOptions: {
       external: ["vue", "@tanstack/vue-query", "axios"],
       output: {

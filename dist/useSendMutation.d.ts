@@ -1,10 +1,10 @@
 import { UseMutationOptions } from '@tanstack/vue-query';
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
-type HttpMethod = 'post' | 'put' | 'patch' | 'delete';
-export default function useSend<TData, TRequest = void, TError = Error>({ API, method, url, requestConfig, options, mutationKey, }: {
-    API: AxiosInstance;
+type HttpMethod = "post" | "put" | "patch" | "delete";
+export default function useSend<TData, TRequest = void, TError = Error>({ method, url, API, requestConfig, options, mutationKey, }: {
     method: HttpMethod;
     url: string;
+    API?: AxiosInstance;
     requestConfig?: AxiosRequestConfig;
     options?: UseMutationOptions<TData, TError, TRequest, unknown>;
     mutationKey?: string | string[];
