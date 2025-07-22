@@ -33,11 +33,11 @@ const isPrimitive = (v: any) => typeof v === "string" || typeof v === "number" |
 
 const fail = (msg: string) => { throw new Error(`[useGet] Invalida paramRef: ${msg}`) };
 
-const deepUnref = <T>(value: T): UnwrapNestedRefs<T> => {
-  if (isRef(value)) return deepUnref(value.value) as UnwrapNestedRefs<T>;
+const deepUnref = <T>(value: T): any => {
+  if (isRef(value)) return deepUnref(value.value);
 
   if (Array.isArray(value)) {
-    return value.map((item) => deepUnref(item)) as unknown as UnwrapNestedRefs<T>;
+    return value.map((item) => deepUnref(item));
   }
 
   if (typeof value === "object" && value !== null) {
@@ -45,10 +45,10 @@ const deepUnref = <T>(value: T): UnwrapNestedRefs<T> => {
     for (const key in value) {
       result[key] = deepUnref((value as any)[key]);
     }
-    return value as UnwrapNestedRefs<T>;
+    return result;
   }
 
-  return value as UnwrapNestedRefs<T>;
+  return value;
 };
 
 const validateParams = (params: any) => {
@@ -71,7 +71,7 @@ const validateParams = (params: any) => {
 
     if (hastPathOrQuery) {
       if (params.path) {
-        if (!Array.isArray(params.path) || params.path.every(isPrimitive)) {
+        if (!Array.isArray(params.path) || !params.path.every(isPrimitive)) {
           fail("params.path must be an array of string | number | boolean");
         }
       }
@@ -198,8 +198,6 @@ export default function useGet<
     return [baseKey, JSON.stringify(paramVal)];
   });
 
-  // const queryKeyComputed = computed(() => unref(queryKey));
-
   const apiInstance = useApi();
   const currentApi = API ?? apiInstance;
 
@@ -211,11 +209,6 @@ export default function useGet<
       const finalUrl = finalParams ? buildUrl(url, finalParams) : url;
 
       return (await currentApi.get<TQueryFnData>(finalUrl)).data;
-      //const response = await currentApi.get<TQueryFnData>(currentApiUrl, {
-      //  params: paramRef ? paramRef : {},
-      //});
-
-      //return response.data;
     },
     ...(options as UseQueryOptions<
       TQueryFnData,
