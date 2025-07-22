@@ -3,9 +3,20 @@ import {
   type UseQueryOptions,
   useQuery,
 } from "@tanstack/vue-query";
-import { computed, MaybeRefOrGetter, unref } from "vue";
+import { computed, ComputedRef, isRef, MaybeRefOrGetter, ref, Ref, unref, UnwrapNestedRefs } from "vue";
 import type { AxiosInstance } from "axios";
 import { useApi } from "./useApi";
+
+/* TYPES */
+
+type ParamInput =
+  string
+  | number
+  | boolean
+  | Ref<any>
+  | ComputedRef<any>
+  | Record<string, any>
+  | Array<any>
 
 type NonFunctionGuard<T> = T extends (...args: any[]) => any ? never : T;
 
@@ -15,6 +26,120 @@ type UseGetQueryOptions<
   TData,
   TQueryKey extends QueryKey,
 > = MaybeRefOrGetter<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>>;
+
+/* UTILS */
+
+const isPrimitive = (v: any) => typeof v === "string" || typeof v === "number" || typeof v === "boolean"; 
+
+const fail = (msg: string) => { throw new Error(`[useGet] Invalida paramRef: ${msg}`) };
+
+const deepUnref = <T>(value: T): UnwrapNestedRefs<T> => {
+  if (isRef(value)) return deepUnref(value.value) as UnwrapNestedRefs<T>;
+
+  if (Array.isArray(value)) {
+    return value.map((item) => deepUnref(item)) as unknown as UnwrapNestedRefs<T>;
+  }
+
+  if (typeof value === "object" && value !== null) {
+    const result: any = {};
+    for (const key in value) {
+      result[key] = deepUnref((value as any)[key]);
+    }
+    return value as UnwrapNestedRefs<T>;
+  }
+
+  return value as UnwrapNestedRefs<T>;
+};
+
+const validateParams = (params: any) => {
+
+  if (params === null || params === undefined) return;
+
+
+  if  (isPrimitive(params)) return;
+
+  if (Array.isArray(params)) {
+    if (!params.every(isPrimitive)) {
+      fail("Array values must be string | number | boolean");
+    }
+
+    return;
+  }
+
+  if (typeof params === "object") {
+    const hastPathOrQuery = "path" in params || "query" in params;
+
+    if (hastPathOrQuery) {
+      if (params.path) {
+        if (!Array.isArray(params.path) || params.path.every(isPrimitive)) {
+          fail("params.path must be an array of string | number | boolean");
+        }
+      }
+
+      if (params.query) {
+        if (typeof params.query !== "object" || Array.isArray(params.query)) {
+          fail("params.query must be a plain object");
+        }
+
+        for (const [k, v] of Object.entries(params.query)) {
+          if (!isPrimitive(v) && !(Array.isArray(v) && v.every(isPrimitive))) {
+            fail(`params.query.${k} must be string | number | boolean or array of those`);
+          }
+        }
+      }
+
+      return;
+    }
+
+    for (const [k, v] of Object.entries(params)) {
+      if (!isPrimitive(v) && !(Array.isArray(v) && v.every(isPrimitive))) {
+        fail(`paramRef.${k} must be string | number | boolean or array of those`);
+      }
+    }
+
+    return;
+  }
+
+  fail("Unsopported paramRef type");
+};
+
+const buildUrl = (baseUrl: string, params: ParamInput): string => {
+  let pathParts: string[] = [];
+  let queryParams: Record<string, any> = {};
+  const resolvedParams = deepUnref(unref(params));
+
+  if (
+    typeof resolvedParams === "string" ||
+    typeof resolvedParams === "number" ||
+    typeof resolvedParams === "boolean"
+  ) {
+    pathParts =[resolvedParams.toString()];
+  } else if (Array.isArray(resolvedParams)) {
+    pathParts = resolvedParams.map(String);
+  } else if (resolvedParams && typeof resolvedParams === "object") {
+    if ("path" in resolvedParams || "query" in resolvedParams) {
+      const path = deepUnref(resolvedParams.path);
+      if (Array.isArray(path)) {
+        pathParts = path.map(String);
+      }
+
+      const query = deepUnref(resolvedParams.query);
+      if (typeof query === "object" && query !== null && !Array.isArray(query)) {
+        queryParams = query;
+      }
+
+    } else {
+      queryParams = resolvedParams;
+    }
+  }
+
+  const finalPath = pathParts.length > 0 ? `${pathParts.join("/")}` : "";
+  const finalQuery = Object.keys(queryParams).length > 0 ?
+    `?${new URLSearchParams(Object.entries(queryParams).map(([k, v]) => [k, String(v)])).toString()}`
+    : "";
+    
+  return `${baseUrl}${finalPath}${finalQuery}`;
+};
 
 /**
  * Composable for making GET requests to an API using `@tanstack/vue-query`.
@@ -58,31 +183,39 @@ export default function useGet<
     UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     "queryKey" | "queryFn"
   >;
-  paramRef?: {
-    [key: string]: string | number | boolean | (string | number | boolean)[];
-  };
+  paramRef?: MaybeRefOrGetter<any>;
 }) {
-  const queryKeyComputed = computed(() => unref(queryKey));
+
+  if (!url || typeof url !== "string") {
+    throw new Error("Invalid or missing URL");
+  }
+
+  const params = isRef(paramRef) ? paramRef : ref(paramRef);
+
+  const queryKeyComputed = computed(() => {
+    const baseKey = unref(queryKey);
+    const paramVal = deepUnref(unref(params));
+    return [baseKey, JSON.stringify(paramVal)];
+  });
+
+  // const queryKeyComputed = computed(() => unref(queryKey));
 
   const apiInstance = useApi();
   const currentApi = API ?? apiInstance;
 
   return useQuery<TQueryFnData, TError, TData, TQueryKey>({
     queryKey: queryKeyComputed.value as any,
-    queryFn: async ({ queryKey: actualQueryKey }) => {
-      const currentApiUrl = url;
+    queryFn: async () => {
+      const finalParams = deepUnref(unref(params));
+      validateParams(finalParams);
+      const finalUrl = finalParams ? buildUrl(url, finalParams) : url;
 
-      if (!currentApiUrl) {
-        throw new Error(
-          `API inválida para el queryKey: ${actualQueryKey.join(", ")}`,
-        );
-      }
+      return (await currentApi.get<TQueryFnData>(finalUrl)).data;
+      //const response = await currentApi.get<TQueryFnData>(currentApiUrl, {
+      //  params: paramRef ? paramRef : {},
+      //});
 
-      const response = await currentApi.get<TQueryFnData>(currentApiUrl, {
-        params: paramRef ? paramRef : {},
-      });
-
-      return response.data;
+      //return response.data;
     },
     ...(options as UseQueryOptions<
       TQueryFnData,
