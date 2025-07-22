@@ -30,8 +30,6 @@ export default function useGet<TQueryFnData, TError = Error, TData = NonFunction
     queryKey: MaybeRefOrGetter<TQueryKey>;
     API?: AxiosInstance;
     options?: Omit<UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">;
-    paramRef?: {
-        [key: string]: string | number | boolean | (string | number | boolean)[];
-    };
+    paramRef?: MaybeRefOrGetter<any>;
 }): import('@tanstack/vue-query').UseQueryReturnType<TData, TError>;
 export {};
