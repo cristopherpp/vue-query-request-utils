@@ -19,15 +19,8 @@ export default function useSend<TData, TRequest = void, TError = Error>({
   options?: UseMutationOptions<TData, TError, TRequest, unknown>;
   mutationKey?: string | string[];
 }) {
-  // Vue injection
   const apiInstance = useApi();
   const currentApi = API ?? apiInstance;
-
-  if (!currentApi) {
-    throw new Error(
-      "No Axios instance provided. Either pass API param or install your API plugin.",
-    );
-  }
 
   return useMutation<TData, TError, TRequest, unknown>({
     mutationKey: mutationKey

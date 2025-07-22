@@ -1,7 +1,7 @@
 {
   "name": "vue-query-request-utils",
-  "version": "1.0.1",
-  "description": "A Vue composable for simplified GET, POST, PUT, PATCH and DELETE requests with @tanstack/vue-query",
+  "version": "1.0.2",
+  "description": "A Vue composable for simplified GET requests with @tanstack/vue-query",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",

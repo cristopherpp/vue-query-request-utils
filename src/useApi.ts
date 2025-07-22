@@ -1,4 +1,4 @@
-import { App, inject } from "vue";
+import { inject, App } from "vue";
 import type { AxiosInstance } from "axios";
 
 const ApiKey = Symbol("api");
