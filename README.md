@@ -1,4 +1,3 @@
-this is right, i think this is everything i need for now:
 # vue-query-request-utils
 
 [![npm version](https://badge.fury.io/js/vue-query-request-utils.svg)](https://www.npmjs.com/package/vue-query-request-utils)
