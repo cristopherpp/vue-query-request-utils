@@ -3,7 +3,7 @@ import {
   type UseQueryOptions,
   useQuery,
 } from "@tanstack/vue-query";
-import { computed, ComputedRef, isRef, MaybeRefOrGetter, ref, Ref, unref, UnwrapNestedRefs } from "vue";
+import { computed, ComputedRef, isRef, MaybeRefOrGetter, ref, Ref, toValue, unref } from "vue";
 import type { AxiosInstance } from "axios";
 import { useApi } from "./useApi";
 
@@ -29,115 +29,96 @@ type UseGetQueryOptions<
 
 /* UTILS */
 
-const isPrimitive = (v: any) => typeof v === "string" || typeof v === "number" || typeof v === "boolean"; 
+const isPrimitive = (v: any) => typeof v === "string" || typeof v === "number" || typeof v === "boolean";
 
-const fail = (msg: string) => { throw new Error(`[useGet] Invalida paramRef: ${msg}`) };
+class UseGetError extends Error {
+  constructor(message: string) {
+    super(`[useGet] ${message}`);
+    this.name = "UseGetError";
+  }
+}
 
 const deepUnref = <T>(value: T): any => {
-  if (isRef(value)) return deepUnref(value.value);
-
-  if (Array.isArray(value)) {
-    return value.map((item) => deepUnref(item));
+  const unwrapped = toValue(value);
+  if (Array.isArray(unwrapped)) {
+    return unwrapped.map(deepUnref);
   }
 
-  if (typeof value === "object" && value !== null) {
-    const result: any = {};
-    for (const key in value) {
-      result[key] = deepUnref((value as any)[key]);
+  if (unwrapped && typeof unwrapped === "object" && !Array.isArray(unwrapped)) {
+    const result: any = {}
+    for (const key in unwrapped) {
+      result[key] = deepUnref(unwrapped[key]);
     }
     return result;
   }
-
-  return value;
+  return unwrapped;
 };
 
-const validateParams = (params: any) => {
-
-  if (params === null || params === undefined) return;
-
-
-  if  (isPrimitive(params)) return;
-
+const validateParams = (params: any, paramPath: string = "paramRef") => {
+  if (params === null || params === undefined) return; // Allow null/undefined for optional params
+  if (isPrimitive(params)) return;
   if (Array.isArray(params)) {
-    if (!params.every(isPrimitive)) {
-      fail("Array values must be string | number | boolean");
-    }
-
+    params.forEach((item, i) => {
+      if (!isPrimitive(item)) {
+        throw new UseGetError(`[${paramPath}[${i}]] must be string | number | boolean, got ${typeof item}`);
+      }
+    });
     return;
   }
-
   if (typeof params === "object") {
-    const hastPathOrQuery = "path" in params || "query" in params;
-
-    if (hastPathOrQuery) {
-      if (params.path) {
-        if (!Array.isArray(params.path) || !params.path.every(isPrimitive)) {
-          fail("params.path must be an array of string | number | boolean");
-        }
+    if ("path" in params || "query" in params) {
+      if (params.path && (!Array.isArray(params.path) || !params.path.every(isPrimitive))) {
+        throw new UseGetError(`[${paramPath}.path] must be an array of string | number | boolean`);
       }
-
+      if (params.query && (typeof params.query !== "object" || Array.isArray(params.query))) {
+        throw new UseGetError(`[${paramPath}.query] must be a plain object`);
+      }
       if (params.query) {
-        if (typeof params.query !== "object" || Array.isArray(params.query)) {
-          fail("params.query must be a plain object");
-        }
-
         for (const [k, v] of Object.entries(params.query)) {
           if (!isPrimitive(v) && !(Array.isArray(v) && v.every(isPrimitive))) {
-            fail(`params.query.${k} must be string | number | boolean or array of those`);
+            throw new UseGetError(`[${paramPath}.query.${k}] must be string | number | boolean or array of those`);
           }
         }
       }
-
       return;
     }
-
     for (const [k, v] of Object.entries(params)) {
       if (!isPrimitive(v) && !(Array.isArray(v) && v.every(isPrimitive))) {
-        fail(`paramRef.${k} must be string | number | boolean or array of those`);
+        throw new UseGetError(`[${paramPath}.${k}] must be string | number | boolean or array of those`);
       }
     }
-
     return;
   }
-
-  fail("Unsopported paramRef type");
+  throw new UseGetError(`[${paramPath}] Unsupported type: ${typeof params}`);
 };
 
 const buildUrl = (baseUrl: string, params: ParamInput): string => {
   let pathParts: string[] = [];
   let queryParams: Record<string, any> = {};
-  const resolvedParams = deepUnref(unref(params));
 
-  if (
-    typeof resolvedParams === "string" ||
-    typeof resolvedParams === "number" ||
-    typeof resolvedParams === "boolean"
-  ) {
-    pathParts =[resolvedParams.toString()];
-  } else if (Array.isArray(resolvedParams)) {
-    pathParts = resolvedParams.map(String);
-  } else if (resolvedParams && typeof resolvedParams === "object") {
-    if ("path" in resolvedParams || "query" in resolvedParams) {
-      const path = deepUnref(resolvedParams.path);
-      if (Array.isArray(path)) {
-        pathParts = path.map(String);
+  if (isPrimitive(params)) {
+    pathParts = [String(params)];
+  } else if (Array.isArray(params)) {
+    pathParts = params.map(String);
+  } else if (params && typeof params === "object") {
+    if ("path" in params || "query" in params) {
+      if (Array.isArray(params.path)) {
+        pathParts = params.path.map(String);
       }
 
-      const query = deepUnref(resolvedParams.query);
-      if (typeof query === "object" && query !== null && !Array.isArray(query)) {
-        queryParams = query;
+      if (params.query && typeof params.query === "object" && !Array.isArray(params.query)) {
+        queryParams = params.query;
       }
-
     } else {
-      queryParams = resolvedParams;
+      queryParams = params;
     }
   }
 
   const finalPath = pathParts.length > 0 ? `${pathParts.join("/")}` : "";
   const finalQuery = Object.keys(queryParams).length > 0 ?
-    `?${new URLSearchParams(Object.entries(queryParams).map(([k, v]) => [k, String(v)])).toString()}`
+    `?${new URLSearchParams(Object.entries(queryParams).flatMap(([k, v]) => Array.isArray(v) ? v.map((val: any) => [k, String(v)]) : [[k, String(v)]])).toString()}`
     : "";
-    
+
   return `${baseUrl}${finalPath}${finalQuery}`;
 };
 
@@ -193,9 +174,17 @@ export default function useGet<
   const params = isRef(paramRef) ? paramRef : ref(paramRef);
 
   const queryKeyComputed = computed(() => {
-    const baseKey = unref(queryKey);
-    const paramVal = deepUnref(unref(params));
-    return [baseKey, JSON.stringify(paramVal)];
+    const baseKey = toValue(queryKey);
+    const resolvedParams = deepUnref(params);
+    const keyArray = Array.isArray(baseKey) ? baseKey.map(deepUnref) : [deepUnref(baseKey)];
+    if (resolvedParams) {
+      if (typeof resolvedParams === "object" && !Array.isArray(resolvedParams) && ("path" in resolvedParams || "query" in resolvedParams)) {
+        keyArray.push(resolvedParams.path ?? [], resolvedParams.query ?? {});
+      } else {
+        keyArray.push(resolvedParams);
+      }
+    }
+    return keyArray;
   });
 
   const apiInstance = useApi();
