@@ -22,6 +22,10 @@ export default function useSend<TData, TRequest = void, TError = Error>({
   const apiInstance = useApi();
   const currentApi = API ?? apiInstance;
 
+  if (!currentApi) {
+    throw new Error("No API instance provided, please provide an api instance via the API prop or use the provideApi function.");
+  }
+
   return useMutation<TData, TError, TRequest, unknown>({
     mutationKey: mutationKey
       ? Array.isArray(mutationKey)
