@@ -1,140 +1,144 @@
-import { useQuery as $, useMutation as q } from "@tanstack/vue-query";
-import { inject as g, isRef as j, ref as S, computed as h, toValue as b, unref as k } from "vue";
+import { useQuery as $, useMutation as g } from "@tanstack/vue-query";
+import { inject as q, isRef as j, ref as S, computed as h, toValue as b } from "vue";
 const w = Symbol("api");
 function v() {
-  const r = g(w);
-  if (r)
-    return r;
+  const e = q(w);
+  if (e)
+    return e;
 }
-function G(r) {
+function I(e) {
   return {
-    install(e) {
-      e.provide(w, r);
+    install(r) {
+      r.provide(w, e);
     }
   };
 }
-const c = (r) => typeof r == "string" || typeof r == "number" || typeof r == "boolean";
-class p extends Error {
-  constructor(e) {
-    super(`[useGet] ${e}`), this.name = "UseGetError";
+const y = (e) => typeof e == "string" || typeof e == "number" || typeof e == "boolean";
+class c extends Error {
+  constructor(r) {
+    super(`[useGet] ${r}`), this.name = "UseGetError";
   }
 }
-const A = (r) => {
-  const e = b(r);
-  if (Array.isArray(e))
-    return e.map(A);
-  if (e && typeof e == "object" && !Array.isArray(e)) {
-    const n = {};
-    for (const t in e)
-      n[t] = A(e[t]);
-    return n;
+const d = (e) => {
+  const r = b(e);
+  if (Array.isArray(r))
+    return r.map(d);
+  if (r && typeof r == "object" && !Array.isArray(r)) {
+    const o = {};
+    for (const t in r)
+      o[t] = d(r[t]);
+    return o;
   }
-  return e;
-}, E = (r, e = "paramRef") => {
-  if (r != null && !c(r)) {
-    if (Array.isArray(r)) {
-      r.forEach((n, t) => {
-        if (!c(n))
-          throw new p(`[${e}[${t}]] must be string | number | boolean, got ${typeof n}`);
+  return r;
+}, m = (e, r = "paramRef") => {
+  if (e != null && !y(e)) {
+    if (Array.isArray(e)) {
+      e.forEach((o, t) => {
+        if (!y(o))
+          throw new c(`[${r}[${t}]] must be string | number | boolean, got ${typeof o}`);
       });
       return;
     }
-    if (typeof r == "object") {
-      if ("path" in r || "query" in r) {
-        if (r.path && (!Array.isArray(r.path) || !r.path.every(c)))
-          throw new p(`[${e}.path] must be an array of string | number | boolean`);
-        if (r.query && (typeof r.query != "object" || Array.isArray(r.query)))
-          throw new p(`[${e}.query] must be a plain object`);
-        if (r.query) {
-          for (const [n, t] of Object.entries(r.query))
-            if (!c(t) && !(Array.isArray(t) && t.every(c)))
-              throw new p(`[${e}.query.${n}] must be string | number | boolean or array of those`);
+    if (typeof e == "object") {
+      if ("path" in e || "query" in e) {
+        if (e.path && (!Array.isArray(e.path) || !e.path.every(y)))
+          throw new c(`[${r}.path] must be an array of string | number | boolean`);
+        if (e.query && (typeof e.query != "object" || Array.isArray(e.query)))
+          throw new c(`[${r}.query] must be a plain object`);
+        if (e.query) {
+          for (const [o, t] of Object.entries(e.query))
+            if (!y(t) && !(Array.isArray(t) && t.every(y)))
+              throw new c(`[${r}.query.${o}] must be string | number | boolean or array of those`);
         }
         return;
       }
-      for (const [n, t] of Object.entries(r))
-        if (!c(t) && !(Array.isArray(t) && t.every(c)))
-          throw new p(`[${e}.${n}] must be string | number | boolean or array of those`);
+      for (const [o, t] of Object.entries(e))
+        if (!y(t) && !(Array.isArray(t) && t.every(y)))
+          throw new c(`[${r}.${o}] must be string | number | boolean or array of those`);
       return;
     }
-    throw new p(`[${e}] Unsupported type: ${typeof r}`);
+    throw new c(`[${r}] Unsupported type: ${typeof e}`);
   }
-}, P = (r, e) => {
-  let n = [], t = {};
-  c(e) ? n = [String(e)] : Array.isArray(e) ? n = e.map(String) : e && typeof e == "object" && ("path" in e || "query" in e ? (Array.isArray(e.path) && (n = e.path.map(String)), e.query && typeof e.query == "object" && !Array.isArray(e.query) && (t = e.query)) : t = e);
-  const a = n.length > 0 ? `${n.join("/")}` : "", s = Object.keys(t).length > 0 ? `?${new URLSearchParams(Object.entries(t).flatMap(([f, o]) => Array.isArray(o) ? o.map((l) => [f, String(o)]) : [[f, String(o)]])).toString()}` : "";
-  return `${r}${a}${s}`;
+}, E = (e, r) => {
+  let o = [], t = {};
+  const n = b(r);
+  if (n == null)
+    return e;
+  y(n) ? o = [String(n)] : Array.isArray(n) ? o = n.map(String) : typeof n == "object" && ("path" in n || "query" in n ? (Array.isArray(n.path) && (o = n.path.map(String)), n.query && typeof n.query == "object" && !Array.isArray(n.query) && (t = n.query)) : t = n);
+  const a = o.length > 0 ? `/${o.join("/")}` : "", f = Object.keys(t).length > 0 ? `?${new URLSearchParams(
+    Object.entries(t).flatMap(
+      ([i, u]) => Array.isArray(u) ? u.map((s) => [i, String(s)]) : [[i, String(u)]]
+    )
+  ).toString()}` : "";
+  return `${e}${a}${f}`;
 };
-function O({
-  url: r,
-  queryKey: e,
-  API: n,
+function U({
+  url: e,
+  queryKey: r,
+  API: o,
   options: t,
-  paramRef: a
+  paramRef: n
 }) {
-  if (!r || typeof r != "string")
+  if (!e || typeof e != "string")
     throw new Error("Invalid or missing URL");
-  const s = j(a) ? a : S(a), f = h(() => {
-    const y = b(e), i = A(s), u = Array.isArray(y) ? y.map(A) : [A(y)];
-    return i && (typeof i == "object" && !Array.isArray(i) && ("path" in i || "query" in i) ? u.push(i.path ?? [], i.query ?? {}) : u.push(i)), u;
-  }), o = v(), l = n ?? o;
-  if (!l)
+  const a = j(n) || typeof n == "function" ? n : S(n), f = h(() => b(r).map(d)), i = v(), u = o ?? i;
+  if (!u)
     throw new Error("No API instance provided, please provide an api instance via the API prop or use the provideApi function.");
   return $({
     queryKey: f.value,
     queryFn: async () => {
-      const y = A(k(s));
-      E(y);
-      const i = y ? P(r, y) : r;
-      return (await l.get(i)).data;
+      const s = d(a);
+      m(s);
+      const A = s != null ? E(e, s) : e;
+      return (await u.get(A)).data;
     },
     ...t
   });
 }
-function K({
-  method: r,
-  url: e,
-  API: n,
+function G({
+  method: e,
+  url: r,
+  API: o,
   requestConfig: t,
-  options: a,
-  mutationKey: s
+  options: n,
+  mutationKey: a
 }) {
-  const f = v(), o = n ?? f, l = h(() => s ? Array.isArray(s) ? s : [s] : void 0);
-  if (!o)
+  const f = v(), i = o ?? f, u = h(() => a ? Array.isArray(a) ? a : [a] : void 0);
+  if (!i)
     throw new Error("No API instance provided, please provide an api instance via the API prop or use the provideApi function.");
-  const y = r.toLowerCase();
-  return q({
-    mutationKey: l.value,
-    mutationFn: async (i) => {
-      let u;
-      const d = i ?? {};
-      switch (y) {
+  const s = e.toLowerCase();
+  return g({
+    mutationKey: u.value,
+    mutationFn: async (A) => {
+      let p;
+      const l = A ?? {};
+      switch (s) {
         case "post":
-          u = await o.post(e, d, t);
+          p = await i.post(r, l, t);
           break;
         case "put":
-          u = await o.put(e, d, t);
+          p = await i.put(r, l, t);
           break;
         case "patch":
-          u = await o.patch(e, d, t);
+          p = await i.patch(r, l, t);
           break;
         case "delete":
-          u = await o.delete(e, {
+          p = await i.delete(r, {
             ...t,
-            data: d
+            data: l
           });
           break;
         default:
-          throw new Error(`HTTP method not supported: ${r}`);
+          throw new Error(`HTTP method not supported: ${e}`);
       }
-      return u.data;
+      return p.data;
     },
-    ...a
+    ...n
   });
 }
 export {
-  G as provideApi,
+  I as provideApi,
   v as useApi,
-  O as useGet,
-  K as useSend
+  U as useGet,
+  G as useSend
 };
