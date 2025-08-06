@@ -10,13 +10,13 @@ import { useApi } from "./useApi";
 /* TYPES */
 
 type ParamInput =
-  string
+  | string
   | number
   | boolean
   | Ref<any>
   | ComputedRef<any>
   | Record<string, any>
-  | Array<any>
+  | Array<any>;
 
 type NonFunctionGuard<T> = T extends (...args: any[]) => any ? never : T;
 
@@ -43,9 +43,8 @@ const deepUnref = <T>(value: T): any => {
   if (Array.isArray(unwrapped)) {
     return unwrapped.map(deepUnref);
   }
-
   if (unwrapped && typeof unwrapped === "object" && !Array.isArray(unwrapped)) {
-    const result: any = {}
+    const result: any = {};
     for (const key in unwrapped) {
       result[key] = deepUnref(unwrapped[key]);
     }
@@ -82,6 +81,7 @@ const validateParams = (params: any, paramPath: string = "paramRef") => {
       }
       return;
     }
+    // Handle plain object as query parameters
     for (const [k, v] of Object.entries(params)) {
       if (!isPrimitive(v) && !(Array.isArray(v) && v.every(isPrimitive))) {
         throw new UseGetError(`[${paramPath}.${k}] must be string | number | boolean or array of those`);
@@ -96,28 +96,36 @@ const buildUrl = (baseUrl: string, params: ParamInput): string => {
   let pathParts: string[] = [];
   let queryParams: Record<string, any> = {};
 
-  if (isPrimitive(params)) {
-    pathParts = [String(params)];
-  } else if (Array.isArray(params)) {
-    pathParts = params.map(String);
-  } else if (params && typeof params === "object") {
-    if ("path" in params || "query" in params) {
-      if (Array.isArray(params.path)) {
-        pathParts = params.path.map(String);
-      }
+  const unwrappedParams = toValue(params); // Handle ref/computed reactivity
 
-      if (params.query && typeof params.query === "object" && !Array.isArray(params.query)) {
-        queryParams = params.query;
+  if (unwrappedParams === null || unwrappedParams === undefined) {
+    return baseUrl;
+  } else if (isPrimitive(unwrappedParams)) {
+    pathParts = [String(unwrappedParams)];
+  } else if (Array.isArray(unwrappedParams)) {
+    pathParts = unwrappedParams.map(String);
+  } else if (typeof unwrappedParams === "object") {
+    if ("path" in unwrappedParams || "query" in unwrappedParams) {
+      if (Array.isArray(unwrappedParams.path)) {
+        pathParts = unwrappedParams.path.map(String);
+      }
+      if (unwrappedParams.query && typeof unwrappedParams.query === "object" && !Array.isArray(unwrappedParams.query)) {
+        queryParams = unwrappedParams.query;
       }
     } else {
-      queryParams = params;
+      queryParams = unwrappedParams; // Treat plain object as query params
     }
   }
 
-  const finalPath = pathParts.length > 0 ? `${pathParts.join("/")}` : "";
-  const finalQuery = Object.keys(queryParams).length > 0 ?
-    `?${new URLSearchParams(Object.entries(queryParams).flatMap(([k, v]) => Array.isArray(v) ? v.map((val: any) => [k, String(v)]) : [[k, String(v)]])).toString()}`
-    : "";
+  const finalPath = pathParts.length > 0 ? `/${pathParts.join("/")}` : "";
+  const finalQuery =
+    Object.keys(queryParams).length > 0
+      ? `?${new URLSearchParams(
+          Object.entries(queryParams).flatMap(([k, v]) =>
+            Array.isArray(v) ? v.map((val: any) => [k, String(val)]) : [[k, String(v)]]
+          )
+        ).toString()}`
+      : "";
 
   return `${baseUrl}${finalPath}${finalQuery}`;
 };
@@ -126,25 +134,27 @@ const buildUrl = (baseUrl: string, params: ParamInput): string => {
  * Composable for making GET requests to an API using `@tanstack/vue-query`.
  *
  * @template T - Data type returned by the API call.
+ * @template TQueryFnData - Data type returned by the API call.
+ * @template TError - Error type.
+ * @template TData - Transformed data type.
+ * @template TQueryKey - Query key type.
  *
  * @param params - Configuration for the request.
- * @param params.API - Axios instance used for the request.
- * @param params.apiUrl - API URL or endpoint. Example: `"/api/example"`.
+ * @template T - Data type returned by the API call.
+ * @param params.url - API URL or endpoint. Example: `"/api/example"`.
  * @param params.queryKey - Unique cache key. Example: `["example"]` or a `Ref<QueryKey>`.
+ * @param [params.API] - Axios instance used for the request.
  * @param [params.options] - Additional `useQuery` options. Example: `{ initialData, enabled }`.
- * @param [params.paramRef] - Query parameters. Example: `{ id: 123, active: true }`.
+ * @param [params.paramRef] - Query parameters. Supports:
+ *   - Single value: `paramRef: 123` → `/api/example/123`
+ *   - Array: `paramRef: [123, "abc"]` → `/api/example/123/abc`
+ *   - Object with path/query: `paramRef: { path: [123], query: { active: true } }` → `/api/example/123?active=true`
+ *   - Plain object: `paramRef: { page: 1, active: true }` → `/api/example?page=1&active=true`
  *
- * @returns A `UseQueryResult` object from `@tanstack/vue-query` with properties like:
- * - `data`: Retrieved data of type `T`.
- * - `isLoading`: Indicates if the request is in progress.
- * - `isError`: Indicates if an error occurred.
- * - `error`: Details about the error, if any.
- * - `isFetching`: Indicates if the cache is being refreshed.
- * - `refetch`: Function to re-run the request.
+ * @returns A `UseQueryResult` object from `@tanstack/vue-query`.
  *
- * @throws {Error} If the API URL is invalid.
+ * @throws {Error} If the API URL is invalid or no API instance is provided.
  */
-
 export default function useGet<
   TQueryFnData,
   TError = Error,
@@ -164,27 +174,19 @@ export default function useGet<
     UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     "queryKey" | "queryFn"
   >;
-  paramRef?: MaybeRefOrGetter<any>;
+  paramRef?: MaybeRefOrGetter<ParamInput>;
 }) {
-
   if (!url || typeof url !== "string") {
     throw new Error("Invalid or missing URL");
   }
 
-  const params = isRef(paramRef) ? paramRef : ref(paramRef);
+  // Wrap paramRef in a ref if it’s not already reactive
+  const params = isRef(paramRef) || typeof paramRef === "function" ? paramRef : ref(paramRef);
 
-  const queryKeyComputed = computed(() => {
-    const baseKey = toValue(queryKey);
-    const resolvedParams = deepUnref(params);
-    const keyArray = Array.isArray(baseKey) ? baseKey.map(deepUnref) : [deepUnref(baseKey)];
-    if (resolvedParams) {
-      if (typeof resolvedParams === "object" && !Array.isArray(resolvedParams) && ("path" in resolvedParams || "query" in resolvedParams)) {
-        keyArray.push(resolvedParams.path ?? [], resolvedParams.query ?? {});
-      } else {
-        keyArray.push(resolvedParams);
-      }
-    }
-    return keyArray;
+  // Compute queryKey reactively
+  const queryKeyComputed = computed<unknown[]>(() => {
+    const baseKey = toValue(queryKey); // Unwrap ref or getter
+    return baseKey.map(deepUnref); // Unwrap each element (string, ref, computed)
   });
 
   const apiInstance = useApi();
@@ -197,9 +199,9 @@ export default function useGet<
   return useQuery<TQueryFnData, TError, TData, TQueryKey>({
     queryKey: queryKeyComputed.value as any,
     queryFn: async () => {
-      const finalParams = deepUnref(unref(params));
+      const finalParams = deepUnref(params);
       validateParams(finalParams);
-      const finalUrl = finalParams ? buildUrl(url, finalParams) : url;
+      const finalUrl = finalParams !== null && finalParams !== undefined ? buildUrl(url, finalParams) : url;
 
       return (await currentApi.get<TQueryFnData>(finalUrl)).data;
     },
