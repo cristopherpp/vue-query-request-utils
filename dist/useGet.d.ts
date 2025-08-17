@@ -1,29 +1,38 @@
 import { QueryKey, UseQueryOptions } from '@tanstack/vue-query';
+<<<<<<< HEAD
 import { MaybeRefOrGetter } from 'vue';
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
+=======
+import { ComputedRef, MaybeRefOrGetter, Ref } from 'vue';
+import { AxiosInstance } from 'axios';
+type ParamInput = string | number | boolean | Ref<any> | ComputedRef<any> | Record<string, any> | Array<any>;
+>>>>>>> a02323d2dc5e275cbf4c07056c10d0b005e6882b
 type NonFunctionGuard<T> = T extends (...args: any[]) => any ? never : T;
 type UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = MaybeRefOrGetter<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>>;
 /**
  * Composable for making GET requests to an API using `@tanstack/vue-query`.
  *
  * @template T - Data type returned by the API call.
+ * @template TQueryFnData - Data type returned by the API call.
+ * @template TError - Error type.
+ * @template TData - Transformed data type.
+ * @template TQueryKey - Query key type.
  *
  * @param params - Configuration for the request.
- * @param params.API - Axios instance used for the request.
- * @param params.apiUrl - API URL or endpoint. Example: `"/api/example"`.
+ * @template T - Data type returned by the API call.
+ * @param params.url - API URL or endpoint. Example: `"/api/example"`.
  * @param params.queryKey - Unique cache key. Example: `["example"]` or a `Ref<QueryKey>`.
+ * @param [params.API] - Axios instance used for the request.
  * @param [params.options] - Additional `useQuery` options. Example: `{ initialData, enabled }`.
- * @param [params.paramRef] - Query parameters. Example: `{ id: 123, active: true }`.
+ * @param [params.paramRef] - Query parameters. Supports:
+ *   - Single value: `paramRef: 123` → `/api/example/123`
+ *   - Array: `paramRef: [123, "abc"]` → `/api/example/123/abc`
+ *   - Object with path/query: `paramRef: { path: [123], query: { active: true } }` → `/api/example/123?active=true`
+ *   - Plain object: `paramRef: { page: 1, active: true }` → `/api/example?page=1&active=true`
  *
- * @returns A `UseQueryResult` object from `@tanstack/vue-query` with properties like:
- * - `data`: Retrieved data of type `T`.
- * - `isLoading`: Indicates if the request is in progress.
- * - `isError`: Indicates if an error occurred.
- * - `error`: Details about the error, if any.
- * - `isFetching`: Indicates if the cache is being refreshed.
- * - `refetch`: Function to re-run the request.
+ * @returns A `UseQueryResult` object from `@tanstack/vue-query`.
  *
- * @throws {Error} If the API URL is invalid.
+ * @throws {Error} If the API URL is invalid or no API instance is provided.
  */
 export default function useGet<TQueryFnData, TError = Error, TData = NonFunctionGuard<TQueryFnData>, TQueryKey extends QueryKey = QueryKey>({ url, queryKey, API, options, paramRef, }: {
     url: string;
@@ -34,6 +43,6 @@ export default function useGet<TQueryFnData, TError = Error, TData = NonFunction
         }>;
     };
     options?: Omit<UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">;
-    paramRef?: MaybeRefOrGetter<any>;
+    paramRef?: MaybeRefOrGetter<ParamInput>;
 }): import('@tanstack/vue-query').UseQueryReturnType<TData, TError>;
 export {};
