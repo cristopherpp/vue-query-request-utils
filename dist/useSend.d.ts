@@ -4,7 +4,11 @@ type HttpMethod = "post" | "put" | "patch" | "delete";
 export default function useSend<TData, TRequest = void, TError = Error>({ method, url, API, requestConfig, options, mutationKey, }: {
     method: HttpMethod;
     url: string;
-    API?: AxiosInstance;
+    API?: AxiosInstance | {
+        [key in HttpMethod]: <T>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<{
+            data: T;
+        }>;
+    };
     requestConfig?: AxiosRequestConfig;
     options?: UseMutationOptions<TData, TError, TRequest, unknown>;
     mutationKey?: string | string[];

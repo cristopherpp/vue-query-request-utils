@@ -1,6 +1,6 @@
 import { QueryKey, UseQueryOptions } from '@tanstack/vue-query';
 import { MaybeRefOrGetter } from 'vue';
-import { AxiosInstance } from 'axios';
+import { AxiosInstance, AxiosRequestConfig } from 'axios';
 type NonFunctionGuard<T> = T extends (...args: any[]) => any ? never : T;
 type UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = MaybeRefOrGetter<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>>;
 /**
@@ -28,7 +28,11 @@ type UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey>
 export default function useGet<TQueryFnData, TError = Error, TData = NonFunctionGuard<TQueryFnData>, TQueryKey extends QueryKey = QueryKey>({ url, queryKey, API, options, paramRef, }: {
     url: string;
     queryKey: MaybeRefOrGetter<TQueryKey>;
-    API?: AxiosInstance;
+    API?: AxiosInstance | {
+        get: <T>(url: string, config?: AxiosRequestConfig) => Promise<{
+            data: T;
+        }>;
+    };
     options?: Omit<UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">;
     paramRef?: MaybeRefOrGetter<any>;
 }): import('@tanstack/vue-query').UseQueryReturnType<TData, TError>;

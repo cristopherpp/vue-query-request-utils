@@ -4,7 +4,7 @@ import {
   useQuery,
 } from "@tanstack/vue-query";
 import { computed, ComputedRef, isRef, MaybeRefOrGetter, ref, Ref, unref, UnwrapNestedRefs } from "vue";
-import type { AxiosInstance } from "axios";
+import type { AxiosInstance, AxiosRequestConfig } from "axios";
 import { useApi } from "./useApi";
 
 /* TYPES */
@@ -178,7 +178,7 @@ export default function useGet<
 }: {
   url: string;
   queryKey: MaybeRefOrGetter<TQueryKey>;
-  API?: AxiosInstance;
+  API?: AxiosInstance | { get: <T>(url: string, config?: AxiosRequestConfig) => Promise<{ data: T }> };
   options?: Omit<
     UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     "queryKey" | "queryFn"
@@ -201,6 +201,10 @@ export default function useGet<
   const apiInstance = useApi();
   const currentApi = API ?? apiInstance;
 
+  if (!currentApi) {
+    throw new Error("No API instance provided, please provide an api instance via the API prop or use the provideApi function"); 
+  }
+
   return useQuery<TQueryFnData, TError, TData, TQueryKey>({
     queryKey: queryKeyComputed.value as any,
     queryFn: async () => {
@@ -208,7 +212,7 @@ export default function useGet<
       validateParams(finalParams);
       const finalUrl = finalParams ? buildUrl(url, finalParams) : url;
 
-      return (await currentApi.get<TQueryFnData>(finalUrl)).data;
+     return (await currentApi.get<TQueryFnData>(finalUrl)).data;
     },
     ...(options as UseQueryOptions<
       TQueryFnData,

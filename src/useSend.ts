@@ -14,7 +14,9 @@ export default function useSend<TData, TRequest = void, TError = Error>({
 }: {
   method: HttpMethod;
   url: string;
-  API?: AxiosInstance;
+  API?: AxiosInstance | {
+    [key in HttpMethod]: <T>(url: string, data?: any, config?: AxiosRequestConfig) => Promise<{ data: T }>;
+  };
   requestConfig?: AxiosRequestConfig;
   options?: UseMutationOptions<TData, TError, TRequest, unknown>;
   mutationKey?: string | string[];
@@ -29,30 +31,11 @@ export default function useSend<TData, TRequest = void, TError = Error>({
         : [mutationKey]
       : undefined,
     mutationFn: async (data: TRequest) => {
-      let response;
       const payload = data ?? {};
 
-      switch (method) {
-        case "post":
-          response = await currentApi.post<TData>(url, payload, requestConfig);
-          break;
-        case "put":
-          response = await currentApi.put<TData>(url, payload, requestConfig);
-          break;
-        case "patch":
-          response = await currentApi.patch<TData>(url, payload, requestConfig);
-          break;
-        case "delete":
-          response = await currentApi.delete<TData>(url, {
-            ...requestConfig,
-            data: payload,
-          });
-          break;
-        default:
-          throw new Error(`Método HTTP no soportado: ${method}`);
-      }
-
-      return response.data;
+      return (await (currentApi instanceof Object && 'defaults' in currentApi
+        ? currentApi[method]<TData>(url, payload, requestConfig)
+        : currentApi[method]<TData>(url, payload))).data;
     },
     ...options,
   });
