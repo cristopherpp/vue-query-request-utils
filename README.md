@@ -34,10 +34,10 @@ pnpm add vue-query-request-utils
 
 ## Peer Dependencies
 
-Ensure the following dependencies are installed in your project:
+Ensure the following dependencies are installed in your project (Axios is optional):
 
 ```bash
-npm install @tanstack/vue-query axios vue
+npm install @tanstack/vue-query vue
 ```
 ## 🚀 Usage
 
@@ -65,7 +65,7 @@ import { API } from './api';
 
 const { data, isLoading, error, refetch } = useGet({
   API,
-  apiUrl: '/users/', // Added an extra "/" at the end
+  apiUrl: '/users',
   queryKey: ['users'],
   paramRef: { query: { page: 1, limit: 10 } }, // The url will be: /users/?page=1&limit=10
   options: { enabled: true },
@@ -168,7 +168,7 @@ import { provideApi } from 'vue-query-request-utils'
 
 export default defineNuxtPlugin(() => {
   const API = axios.create({ baseURL: 'https://api.example.com' });
-  nuxtApp.vueApp.use(provideApi(api));
+  nuxtApp.vueApp.use(provideApi(API));
 });
 ```
 
@@ -182,7 +182,7 @@ import { provideApi, createFetchClient } from 'vue-query-request-utils'
 
 export default defineNuxtPlugin(() => {
   const API = createFetchClient('https://api.example.com');
-  nuxtApp.vueApp.use(provideApi(api));
+  nuxtApp.vueApp.use(provideApi(API));
 });
 ```
 
