@@ -1,6 +1,6 @@
 import { UseMutationOptions } from '@tanstack/vue-query';
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
-type HttpMethod = "post" | "POST" | "put" | "PUT" | "patch" | "PATCH" | "delete" | "DELETE";
+type HttpMethod = "post" | "put" | "patch" | "delete";
 /**
  * Composable for making POST, PUT, PATCH, or DELETE requests to an API using
  * `@tanstack/vue-query`.

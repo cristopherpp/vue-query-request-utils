@@ -3,7 +3,7 @@ import { AxiosInstance, type AxiosRequestConfig } from "axios";
 import { useApi } from "./useApi";
 import { computed } from "vue";
 
-type HttpMethod = "post" | "POST" | "put" | "PUT" | "patch" | "PATCH" | "delete" | "DELETE";
+type HttpMethod = "post" | "put" | "patch" | "delete";
 
 /**
  * Composable for making POST, PUT, PATCH, or DELETE requests to an API using

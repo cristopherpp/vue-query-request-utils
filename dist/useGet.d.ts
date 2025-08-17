@@ -1,12 +1,7 @@
 import { QueryKey, UseQueryOptions } from '@tanstack/vue-query';
-<<<<<<< HEAD
-import { MaybeRefOrGetter } from 'vue';
-import { AxiosInstance, AxiosRequestConfig } from 'axios';
-=======
 import { ComputedRef, MaybeRefOrGetter, Ref } from 'vue';
-import { AxiosInstance } from 'axios';
+import { AxiosInstance, AxiosRequestConfig } from 'axios';
 type ParamInput = string | number | boolean | Ref<any> | ComputedRef<any> | Record<string, any> | Array<any>;
->>>>>>> a02323d2dc5e275cbf4c07056c10d0b005e6882b
 type NonFunctionGuard<T> = T extends (...args: any[]) => any ? never : T;
 type UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = MaybeRefOrGetter<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>>;
 /**
