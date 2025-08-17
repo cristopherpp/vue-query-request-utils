@@ -158,6 +158,8 @@ const createUser = () => {
 
 The composables work seamlessly with Nuxt 3. Use them in your setup scripts or provide the Axios instance via a Nuxt plugin:
 
+### Axios
+
 ```ts
 // plugins/api.ts
 import { defineNuxtPlugin } from '#app';
@@ -166,6 +168,20 @@ import { provideApi } from 'vue-query-request-utils'
 
 export default defineNuxtPlugin(() => {
   const API = axios.create({ baseURL: 'https://api.example.com' });
+  nuxtApp.vueApp.use(provideApi(api));
+});
+```
+
+### Fetch
+
+```ts
+// plugins/api.ts
+import { defineNuxtPlugin } from '#app';
+import axios from 'axios';
+import { provideApi, createFetchClient } from 'vue-query-request-utils'
+
+export default defineNuxtPlugin(() => {
+  const API = createFetchClient('https://api.example.com');
   nuxtApp.vueApp.use(provideApi(api));
 });
 ```
