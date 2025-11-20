@@ -9,7 +9,7 @@ export function useApi() {
   return api;
 }
 
-export function provideApi(api: AxiosInstance) {
+export function provideApi(api: AxiosInstance | string) {
   return {
     install(app: App) {
       app.provide(ApiKey, api);

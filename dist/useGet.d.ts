@@ -1,8 +1,7 @@
-import { QueryKey, UseQueryOptions } from '@tanstack/vue-query';
+import { QueryKey } from '@tanstack/vue-query';
 import { MaybeRefOrGetter } from 'vue';
 import { AxiosInstance } from 'axios';
-type NonFunctionGuard<T> = T extends (...args: any[]) => any ? never : T;
-type UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey extends QueryKey> = MaybeRefOrGetter<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>>;
+import { NonFunctionGuard, UseGetQueryOptions } from './types/index.dto';
 /**
  * Composable for making GET requests to an API using `@tanstack/vue-query`.
  *
@@ -32,4 +31,3 @@ export default function useGet<TQueryFnData, TError = Error, TData = NonFunction
     options?: Omit<UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>, "queryKey" | "queryFn">;
     paramRef?: MaybeRefOrGetter<any>;
 }): import('@tanstack/vue-query').UseQueryReturnType<TData, TError>;
-export {};

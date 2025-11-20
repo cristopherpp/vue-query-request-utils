@@ -1,6 +1,7 @@
 import { UseMutationOptions } from '@tanstack/vue-query';
 import { AxiosInstance, AxiosRequestConfig } from 'axios';
-type HttpMethod = "post" | "POST" | "put" | "PUT" | "patch" | "PATCH" | "delete" | "DELETE";
+import { MaybeRefOrGetter } from 'vue';
+import { HttpMethod } from './types/index.dto';
 /**
  * Composable for making POST, PUT, PATCH, or DELETE requests to an API using
  * `@tanstack/vue-query`.
@@ -27,12 +28,12 @@ type HttpMethod = "post" | "POST" | "put" | "PUT" | "patch" | "PATCH" | "delete"
  *
  * @throws {Error} If the API URL is invalid.
  */
-export default function useSend<TData, TRequest = void, TError = Error>({ API, method, url, requestConfig, options, mutationKey, }: {
+export default function useSend<TData, TRequest = void, TError = Error>({ API, method, url, paramsRef, requestConfig, options, mutationKey, }: {
     method: HttpMethod;
     url: string;
     API?: AxiosInstance;
+    paramsRef: MaybeRefOrGetter<any>;
     requestConfig?: AxiosRequestConfig;
     options?: UseMutationOptions<TData, TError, TRequest, unknown>;
     mutationKey?: string | string[];
 }): import('@tanstack/vue-query').UseMutationReturnType<TData, TError, TRequest, unknown, Omit<import('@tanstack/vue-query').MutationObserverIdleResult<TData, TError, TRequest, unknown>, "mutate" | "reset"> | Omit<import('@tanstack/vue-query').MutationObserverLoadingResult<TData, TError, TRequest, unknown>, "mutate" | "reset"> | Omit<import('@tanstack/vue-query').MutationObserverErrorResult<TData, TError, TRequest, unknown>, "mutate" | "reset"> | Omit<import('@tanstack/vue-query').MutationObserverSuccessResult<TData, TError, TRequest, unknown>, "mutate" | "reset">>;
-export {};
