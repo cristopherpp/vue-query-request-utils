@@ -11,8 +11,30 @@ function isAxiosInstance(api: any): api is AxiosInstance {
 }
 
 /**
- * Composable for making POST, PUT, PATCH, or DELETE requests.
- * Supports both Axios instances and native Fetch (via string URL base).
+ * Composable for making POST, PUT, PATCH, or DELETE requests to an API using
+ * `@tanstack/vue-query`.
+ *
+ * @template TData - Data type returned by the API call.
+ * @template TRequest - Data type sent in the request body.
+ * @template TError - Error type returned by the API call.
+ *
+ * @param {Object} options - Configuration for the request.
+ * @param {HttpMethod} options.method - HTTP method (post, put, patch, delete).
+ * @param {string} options.url - API URL or endpoint. Example: `"/api/example"`.
+ * @param {AxiosInstance} [options.API] - Axios instance used for the request.
+ * @param {AxiosRequestConfig} [options.requestConfig] - Additional Axios request config.
+ * @param {UseMutationOptions<TData, TError, TRequest, unknown>} [options.options] - Additional `useMutation` options.
+ * @param {string | string[]} [options.mutationKey] - Unique cache key. Example: `["example"]` or a `Ref<QueryKey>`.
+ *
+ * @returns A `UseMutationResult` object from `@tanstack/vue-query` with properties like:
+ * - `mutate`: Function to trigger the mutation.
+ * - `isLoading`: Mutation in progress.
+ * - `isSuccess`: Mutation success state.
+ * - `data`: Response data.
+ * - `error`: Error details, if any.
+ * - `refetch`: Function to refetch data.
+ *
+ * @throws {Error} If the API URL is invalid.
  */
 export default function useSend<TData, TRequest = any, TError = Error>({
   API,

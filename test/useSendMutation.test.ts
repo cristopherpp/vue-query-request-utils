@@ -4,7 +4,7 @@ import { http, HttpResponse } from "msw";
 import { render, fireEvent, screen, waitFor } from "@testing-library/vue";
 import { h, defineComponent } from "vue";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
-import useSend from "../src/useSendMutation";
+import useSend from "../src/useSend";
 import axios from "axios";
 
 const server = setupServer(

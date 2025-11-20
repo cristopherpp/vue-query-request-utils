@@ -34,10 +34,10 @@ pnpm add vue-query-request-utils
 
 ## Peer Dependencies
 
-Ensure the following dependencies are installed in your project:
+Ensure the following dependencies are installed in your project (Axios is optional):
 
 ```bash
-npm install @tanstack/vue-query axios vue
+npm install @tanstack/vue-query vue
 ```
 ## 🚀 Usage
 
@@ -65,7 +65,7 @@ import { API } from './api';
 
 const { data, isLoading, error, refetch } = useGet({
   API,
-  apiUrl: '/users/', // Added an extra "/" at the end
+  apiUrl: '/users',
   queryKey: ['users'],
   paramRef: { query: { page: 1, limit: 10 } }, // The url will be: /users/?page=1&limit=10
   options: { enabled: true },
@@ -158,6 +158,8 @@ const createUser = () => {
 
 The composables work seamlessly with Nuxt 3. Use them in your setup scripts or provide the Axios instance via a Nuxt plugin:
 
+### Axios
+
 ```ts
 // plugins/api.ts
 import { defineNuxtPlugin } from '#app';
@@ -166,7 +168,21 @@ import { provideApi } from 'vue-query-request-utils'
 
 export default defineNuxtPlugin(() => {
   const API = axios.create({ baseURL: 'https://api.example.com' });
-  nuxtApp.vueApp.use(provideApi(api));
+  nuxtApp.vueApp.use(provideApi(API));
+});
+```
+
+### Fetch
+
+```ts
+// plugins/api.ts
+import { defineNuxtPlugin } from '#app';
+import axios from 'axios';
+import { provideApi, createFetchClient } from 'vue-query-request-utils'
+
+export default defineNuxtPlugin(() => {
+  const API = createFetchClient('https://api.example.com');
+  nuxtApp.vueApp.use(provideApi(API));
 });
 ```
 
