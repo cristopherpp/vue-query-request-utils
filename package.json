@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "type": "module", 
+  "type": "module",
   "files": [
     "dist"
   ],
@@ -50,6 +50,6 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/cristopherpp/vue-query-request-utils.git"
+    "url": "git+https://github.com/cristopherpp/vue-query-request-utils.git"
   }
 }
