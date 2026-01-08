@@ -1,6 +1,6 @@
 {
   "name": "vue-query-request-utils",
-  "version": "1.2",
+  "version": "1.2.0",
   "description": "A Vue composable for simplified GET requests with @tanstack/vue-query",
   "main": "dist/index.js",
   "module": "dist/index.js",
