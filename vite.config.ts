@@ -14,18 +14,11 @@ export default defineConfig({
   build: {
     lib: {
       entry: resolve(__dirname, "src/index.ts"),
-      name: "VueQueryRequestUtils",
-      fileName: (format) => `index.${format === "es" ? "mjs" : "js"}`,
+      formats: ["es"],
+      fileName: () => "index.js",
     },
-    outDir: "dist",
     rollupOptions: {
       external: ["vue", "@tanstack/vue-query", "axios"],
-      output: {
-        globals: {
-          vue: "Vue",
-          "@tanstack/vue-query": "VueQuery",
-        },
-      },
     },
   },
   test: {

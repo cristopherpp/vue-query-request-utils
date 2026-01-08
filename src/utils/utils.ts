@@ -5,8 +5,8 @@ export const isPrimitive = (v: any) => typeof v === "string" || typeof v === "nu
 
 export class UseGetError extends Error {
   constructor(message: string) {
-    super(`[useGet] ${message}`);
-    this.name = "UseGetError";
+    super(`[Function] ${message}`);
+    this.name = "Vue Query Request Utils Error";
   }
 }
 
@@ -86,7 +86,7 @@ export const buildUrl = (baseUrl: string, params: ParamInput): string => {
     }
   }
 
-  const finalPath = pathParts.length > 0 ? `${pathParts.join("/")}` : "";
+  const finalPath = pathParts.length > 0 ? `/${pathParts.join("/")}` : "";
   const finalQuery = Object.keys(queryParams).length > 0 ?
     `?${new URLSearchParams(Object.entries(queryParams).flatMap(([k, v]) => Array.isArray(v) ? v.map((val: any) => [k, String(v)]) : [[k, String(v)]])).toString()}`
     : "";

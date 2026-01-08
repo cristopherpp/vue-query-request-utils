@@ -3,11 +3,17 @@ import {
   type UseQueryOptions,
   useQuery,
 } from "@tanstack/vue-query";
-import { computed, isRef, MaybeRefOrGetter, ref, toValue } from "vue";
-import type { AxiosInstance, AxiosRequestConfig } from "axios";
+import { ComputedRef, isRef, MaybeRefOrGetter, Ref, ref } from "vue";
+import type { AxiosInstance } from "axios";
 import { useApi } from "./useApi";
-import { NonFunctionGuard, ParamInput, UseGetQueryOptions } from "./types/index.dto";
+import { HttpClient, NonFunctionGuard, ParamInput, UseGetQueryOptions } from "./types/index.dto";
 import { deepUnref, validateParams, buildUrl } from "./utils/utils";
+
+type ReactiveQueryKey<TQueryKey extends QueryKey> =
+  TQueryKey |
+  Ref<TQueryKey> |
+  ComputedRef<TQueryKey> |
+  (() => TQueryKey);
 
 /**
  * Composable for making GET requests to an API using `@tanstack/vue-query`.
@@ -47,8 +53,8 @@ export default function useGet<
   paramRef,
 }: {
   url: string;
-  queryKey: MaybeRefOrGetter<TQueryKey>;
-  API?: AxiosInstance | string;
+  queryKey: ReactiveQueryKey<TQueryKey>;
+  API?: HttpClient | AxiosInstance | string;
   options?: Omit<
     UseGetQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     "queryKey" | "queryFn"
@@ -62,12 +68,6 @@ export default function useGet<
   // Wrap paramRef in a ref if it’s not already reactive
   const params = isRef(paramRef) || typeof paramRef === "function" ? paramRef : ref(paramRef);
 
-  // Compute queryKey reactively
-  const queryKeyComputed = computed<unknown[]>(() => {
-    const baseKey = toValue(queryKey); // Unwrap ref or getter
-    return baseKey.map(deepUnref); // Unwrap each element (string, ref, computed)
-  });
-
   const apiInstance = useApi();
   const currentApi = API ?? apiInstance;
 
@@ -76,17 +76,23 @@ export default function useGet<
   }
 
   return useQuery<TQueryFnData, TError, TData, TQueryKey>({
-    queryKey: queryKeyComputed.value as any,
+    queryKey: queryKey as any,
     queryFn: async () => {
       const finalParams = deepUnref(params);
       validateParams(finalParams);
       const finalUrl = finalParams ? buildUrl(url, finalParams) : url;
 
       if (typeof currentApi === "string") {
-        return (await fetch(currentApi + finalUrl)).json();
+        const response = await fetch(currentApi + finalUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
       }
 
-     return (await currentApi.get<TQueryFnData>(finalUrl)).data;
+      const client = currentApi as HttpClient;
+      const response = await client.get<TQueryFnData>(finalUrl);
+      return response.data;
     },
     ...(options as UseQueryOptions<
       TQueryFnData,

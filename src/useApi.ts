@@ -1,15 +1,8 @@
 import { inject, App } from "vue";
 import type { AxiosInstance } from "axios";
+import { HttpClient } from "./types/index.dto";
 
 const ApiKey = Symbol("api");
-
-interface HttpClient {
-  get<T>(url: string): Promise<{ data: T }>;
-  post<T>(url: string, data?: any): Promise<{ data: T }>;
-  put<T>(url: string, data?: any): Promise<{ data: T }>;
-  patch<T>(url: string, data?: any): Promise<{ data: T }>;
-  delete<T>(url: string, data?: any): Promise<{ data: T }>;
-}
 
 export function useApi() {
   const api = inject<HttpClient>(ApiKey);

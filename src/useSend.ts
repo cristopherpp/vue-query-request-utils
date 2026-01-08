@@ -1,194 +1,176 @@
-import { useMutation, type UseMutationOptions } from "@tanstack/vue-query";
-import { type AxiosInstance, type AxiosRequestConfig, isAxiosError } from "axios";
+import { useMutation, type UseMutationOptions, type MutationKey } from "@tanstack/vue-query";
+import { type AxiosInstance, type AxiosRequestConfig } from "axios";
+import { isRef, type MaybeRefOrGetter, ref, toValue } from "vue";
 import { useApi } from "./useApi";
-import { computed, isRef, type MaybeRefOrGetter, ref, unref } from "vue";
-import { type HttpMethod } from "./types/index.dto";
-import { deepUnref, validateParams } from "./utils/utils";
+import { HttpClient } from "./types/index.dto";
+import { ParamInput } from "./types/index.dto";
+import { deepUnref, validateParams, buildUrl } from "./utils/utils";
 
-// Helper Type checks
+// Improved type guard for Axios (checks for .request method, which your HttpClient lacks)
 function isAxiosInstance(api: any): api is AxiosInstance {
-  return api && typeof api.request === 'function';
+  return api && typeof api.request === "function";
 }
 
+type HttpMethod = "post" | "put" | "patch" | "delete";
+
 /**
- * Composable for making POST, PUT, PATCH, or DELETE requests to an API using
- * `@tanstack/vue-query`.
+ * Composable for making POST, PUT, PATCH, or DELETE requests using `@tanstack/vue-query`.
+ * Supports injected/provided API (fetch client, Axios, or base URL string) with override via `API` prop.
+ * Includes URL building (path + query params) similar to useGet.
  *
- * @template TData - Data type returned by the API call.
- * @template TRequest - Data type sent in the request body.
- * @template TError - Error type returned by the API call.
+ * @template TData - Response data type.
+ * @template TRequest - Request body type (defaults to any; use void if no body).
+ * @template TError - Error type.
  *
- * @param {Object} options - Configuration for the request.
- * @param {HttpMethod} options.method - HTTP method (post, put, patch, delete).
- * @param {string} options.url - API URL or endpoint. Example: `"/api/example"`.
- * @param {AxiosInstance} [options.API] - Axios instance used for the request.
- * @param {AxiosRequestConfig} [options.requestConfig] - Additional Axios request config.
- * @param {UseMutationOptions<TData, TError, TRequest, unknown>} [options.options] - Additional `useMutation` options.
- * @param {string | string[]} [options.mutationKey] - Unique cache key. Example: `["example"]` or a `Ref<QueryKey>`.
+ * @param options
+ * @param options.method - HTTP method.
+ * @param options.url - Base endpoint (e.g., "/users/:id").
+ * @param [options.API] - Override API client (HttpClient, AxiosInstance, or base URL string).
+ * @param [options.paramRef] - Reactive URL params (path/array/object/query) – same as useGet.
+ * @param [options.bodyRef] - Fallback reactive body (used if mutate() called without variables).
+ * @param [options.config] - Extra request config (AxiosRequestConfig for Axios, RequestInit for fetch/base URL).
+ * @param [options.mutationKey] - Optional static mutation key for defaults/grouping.
+ * @param [options.options] - Additional useMutation options.
  *
- * @returns A `UseMutationResult` object from `@tanstack/vue-query` with properties like:
- * - `mutate`: Function to trigger the mutation.
- * - `isLoading`: Mutation in progress.
- * - `isSuccess`: Mutation success state.
- * - `data`: Response data.
- * - `error`: Error details, if any.
- * - `refetch`: Function to refetch data.
- *
- * @throws {Error} If the API URL is invalid.
+ * @returns UseMutationResult with mutate/mutateAsync for triggering.
  */
-export default function useSend<TData, TRequest = any, TError = Error>({
-  API,
+export default function useSend<
+  TData,
+  TRequest = any,
+  TError = Error,
+>({
   method,
   url,
-  paramsRef,
-  requestConfig,
+  API,
+  paramRef,
+  bodyRef,
+  config,
   options,
   mutationKey,
 }: {
   method: HttpMethod;
   url: string;
-  API?: AxiosInstance | string;
-  paramsRef?: MaybeRefOrGetter<TRequest>; // Made optional
-  requestConfig?: AxiosRequestConfig; // Used for Axios
-  fetchOptions?: RequestInit; // Added specifically for Fetch customization
-  options?: UseMutationOptions<TData, TError, TRequest, unknown>;
-  mutationKey?: string | string[];
+  API?: HttpClient | AxiosInstance | string;
+  paramRef?: MaybeRefOrGetter<ParamInput>;
+  bodyRef?: MaybeRefOrGetter<TRequest>;
+  config?: AxiosRequestConfig | RequestInit;
+  options?: UseMutationOptions<TData, TError, TRequest>;
+  mutationKey?: MutationKey;
 }) {
+  if (!url || typeof url !== "string") {
+    throw new Error("Invalid or missing URL");
+  }
+
   const apiInstance = useApi();
-  // Fallback: If API prop is missing, try useApi. If useApi is missing/invalid, fallback to empty (logic handled below)
   const currentApi = API ?? apiInstance;
 
-  const mutationKeyComputed = computed(() =>
-    mutationKey
-      ? Array.isArray(mutationKey)
-        ? mutationKey
-        : [mutationKey]
-      : undefined
-  );
+  if (!currentApi) {
+    throw new Error("No API instance provided. Provide via API prop or provideApi().");
+  }
 
-  const normalizedMethod = method.toLowerCase();
-  const params = paramsRef ? (isRef(paramsRef) ? paramsRef : ref(paramsRef)) : ref(null);
+  // Wrap reactive paramRef/bodyRef
+  const urlParams = paramRef
+    ? isRef(paramRef) || typeof paramRef === "function" ? paramRef : ref(paramRef)
+    : undefined;
 
-  return useMutation<TData, TError, TRequest, unknown>({
-    mutationKey: mutationKeyComputed.value,
-    
-    // variables here comes from mutate(variables)
+  const fallbackBody = bodyRef
+    ? isRef(bodyRef) || typeof bodyRef === "function" ? bodyRef : ref(bodyRef)
+    : undefined;
+
+  const finalMutationKey = mutationKey ? (Array.isArray(mutationKey) ? mutationKey : [mutationKey]) : undefined;
+
+  const normalizedMethod = method.toLowerCase() as "post" | "put" | "patch" | "delete";
+
+  return useMutation<TData, TError, TRequest>({
+    mutationKey: finalMutationKey,
     mutationFn: async (variables) => {
-      if (!currentApi) {
-        throw new Error("No API instance or Base URL provided.");
+      // Build URL with params (path + query)
+      let finalUrl = url;
+      if (urlParams) {
+        const paramsValue = deepUnref(toValue(urlParams));
+        validateParams(paramsValue);
+        finalUrl = buildUrl(url, paramsValue);
       }
 
-      // PRIORITIZE: mutate(variables) -> paramsRef -> empty object
-      const variablePayload = deepUnref(unref(variables));
-      const refPayload = deepUnref(unref(params));
-      
-      // Use variables if passed, otherwise fallback to the ref
-      let finalPayload = (variablePayload && Object.keys(variablePayload).length > 0) 
-        ? variablePayload 
-        : refPayload;
-        
-      validateParams(finalPayload);
-      finalPayload = finalPayload ?? {};
+      let finalPayload: any = undefined;
+      if (variables !== undefined) {
+        finalPayload = deepUnref(variables);
+      } else if (fallbackBody) {
+        finalPayload = deepUnref(toValue(fallbackBody));
+      }
 
-      // --- HANDLE FETCH ---
+      // Branch by API type
       if (typeof currentApi === "string") {
-        return handleFetch<TData>(
-          currentApi, 
-          url, 
-          normalizedMethod, 
-          finalPayload, 
-          requestConfig // We map axios config to fetch options inside the helper
-        );
-      } 
-      
-      // --- HANDLE AXIOS ---
-      if (isAxiosInstance(currentApi)) {
-        return handleAxios<TData>(
-          currentApi, 
-          url, 
-          normalizedMethod, 
-          finalPayload, 
-          requestConfig
-        );
+        return handleFetch<TData>(currentApi + finalUrl, normalizedMethod, finalPayload, config as RequestInit);
       }
 
-      throw new Error("Invalid API instance provided.");
+      if (isAxiosInstance(currentApi)) {
+        return handleAxios<TData>(currentApi, finalUrl, normalizedMethod, finalPayload, config as AxiosRequestConfig);
+      }
+
+      const client = currentApi as HttpClient;
+      const response = await client[normalizedMethod]<TData>(finalUrl, finalPayload);
+      return response.data;
     },
-    ...options,
+    ...(options ?? {}),
   });
 }
 
-/**
- * Internal helper to handle Fetch requests
- */
+// Unified fetch handler (best practices: error check, JSON body, headers)
 async function handleFetch<T>(
-  baseUrl: string, 
-  endpoint: string, 
-  method: string, 
+  fullUrl: string,
+  method: string,
   payload: any,
-  config?: any
+  fetchOptions?: RequestInit
 ): Promise<T> {
-  const fetchUrl = `${baseUrl}${endpoint}`;
-  
-  // Basic Headers
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(config?.headers || {})
+    "Content-Type": "application/json",
+    ...(fetchOptions?.headers ?? {}),
   };
 
   const options: RequestInit = {
     method: method.toUpperCase(),
     headers,
-    body: method !== 'get' ? JSON.stringify(payload) : undefined,
-    ...config // Spread extra config if compatible
+    body: payload !== undefined ? JSON.stringify(payload) : undefined,
+    ...(fetchOptions ?? {}),
   };
 
-  const response = await fetch(fetchUrl, options);
-
-  // Fetch does not throw on 4xx/5xx, so we must check manually
+  const response = await fetch(fullUrl, options);
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.message || `Request failed with status ${response.status}`);
+    let errorBody = {};
+    try {
+      errorBody = await response.json();
+    } catch {}
+    throw new Error((errorBody as any)?.message || `HTTP error! Status: ${response.status}`);
   }
-
   return response.json();
 }
 
-/**
- * Internal helper to handle Axios requests
- */
+// Unified Axios handler (handles delete config difference)
 async function handleAxios<T>(
-  api: AxiosInstance, 
-  url: string, 
-  method: string, 
-  payload: any, 
-  config?: AxiosRequestConfig
+  api: AxiosInstance,
+  url: string,
+  method: string,
+  payload: any,
+  axiosConfig?: AxiosRequestConfig
 ): Promise<T> {
-  try {
-    let response;
-    switch (method) {
-      case "post":
-        response = await api.post<T>(url, payload, config);
-        break;
-      case "put":
-        response = await api.put<T>(url, payload, config);
-        break;
-      case "patch":
-        response = await api.patch<T>(url, payload, config);
-        break;
-      case "delete":
-        // Axios delete signature is different (config contains data)
-        response = await api.delete<T>(url, {
-          ...config,
-          data: payload,
-        });
-        break;
-      default:
-        throw new Error(`HTTP method not supported: ${method}`);
-    }
-    return response.data;
-  } catch (error) {
-    // Optional: Normalize error if needed, or just rethrow
-    throw error;
+  let response;
+  switch (method) {
+    case "post":
+      response = await api.post<T>(url, payload, axiosConfig);
+      break;
+    case "put":
+      response = await api.put<T>(url, payload, axiosConfig);
+      break;
+    case "patch":
+      response = await api.patch<T>(url, payload, axiosConfig);
+      break;
+    case "delete":
+      response = await api.delete<T>(url, {
+        ...axiosConfig,
+        data: payload,
+      });
+      break;
   }
+  return response!.data;
 }

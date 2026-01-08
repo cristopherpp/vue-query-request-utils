@@ -3,18 +3,18 @@
 [![npm version](https://badge.fury.io/js/vue-query-request-utils.svg)](https://www.npmjs.com/package/vue-query-request-utils)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A set of **Vue 3 composables** for simplified HTTP requests (GET, POST, PUT, PATCH, DELETE) using [@tanstack/vue-query](https://tanstack.com/query/latest/docs/framework/vue/overview) and Axios.
-Effortlessly fetch and mutate data with built-in caching, loading states, error handling, and TypeScript support. Perfect for Vue 3 and Nuxt 3 projects.
+A set of **Vue 3 composables** for simplified HTTP requests (GET, POST, PUT, PATCH, DELETE) using [@tanstack/vue-query](https://tanstack.com/query/latest/docs/framework/vue/overview) with support for Axios or native Fetch.
+Effortlessly fetch and mutate data with built-in caching, loading states, error handling, and TypeScript support. Perfect for Vue 3 and Nuxt 3 and 4 projects.
 
 ---
 
 ## 📦 Features
 
 - 🔁 **Automatic caching and refetching** via `@tanstack/vue-query`
-- 📡 **Configurable Axios instance** for flexible API requests
-- ⚙️ **Query parameter support** for GET requests
+- 📡 **Configurable HTTP client** supporting Axios instances or a custom Fetch-based client for flexible API requests
+- ⚙️ **Query parameter support** for GET and mutation requests (dynamic URLs)
 - 🔒 **TypeScript-friendly** with fully typed composables
-- 📱 **Compatible** with Vue 3 and Nuxt 3 projects
+- 📱 **Compatible** with Vue 3 and Nuxt 3 and 4 projects
 - 🚀 **Simple API** for both queries (`useGetQuery`) and mutations (`useSend`)
 - 🛠️ **Error handling** and loading states out of the box
 
@@ -34,16 +34,29 @@ pnpm add vue-query-request-utils
 
 ## Peer Dependencies
 
-Ensure the following dependencies are installed in your project (Axios is optional):
+This package requires the following peer dependencies:
+
+**@tanstack/vue-query** (required): Provides the core query and mutation functionality. Install the latest version (e.g., ^5.92.0 as of January 2026) for optimal compatibility.
+**vue** (required): The Vue.js framework (version ^3.0.0 or higher).
+**axios** (optional): Required only if using Axios as your HTTP client (version ^1.13.2 or higher as of January 2026). If you prefer native Fetch, you can use the built-in createFetchClient utility instead—no Axios needed.
 
 ```bash
 npm install @tanstack/vue-query vue
 ```
+
+If using Axios:
+
+```bash
+npm install axios
+```
+
 ## 🚀 Usage
 
-# Setting Up Axios
+# Setting Up the HTTP Client
 
-Create an Axios instance to use with the composables:
+You can use either Axios or a Fetch-based client. Provide the client globally (e.g., via provideApi in your app setup or Nuxt plugin) or override per-composable via the API prop.
+
+#### Using Axios
 
 ```ts
 // api.ts
@@ -54,20 +67,29 @@ export const API = axios.create({
 });
 ```
 
+#### Using Fetch (No Axios Required)
+
+```ts
+// api.ts
+import { createFetchClient } from 'vue-query-request-utils';
+
+export const API = createFetchClient('https://api.example.com');
+```
+
 # useGet (GET Requests)
 
 Fetch data with caching and loading states:
 
 ```vue
 <script setup>
-import { useGetQuery } from 'vue-query-request-utils';
+import { useGet } from 'vue-query-request-utils';
 import { API } from './api';
 
 const { data, isLoading, error, refetch } = useGet({
   API,
-  apiUrl: '/users',
+  url: '/users',
   queryKey: ['users'],
-  paramRef: { query: { page: 1, limit: 10 } }, // The url will be: /users/?page=1&limit=10
+  paramRef: { query: { page: 1, limit: 10 } }, // Builds: /users?page=1&limit=10
   options: { enabled: true },
 });
 </script>
@@ -83,6 +105,7 @@ const { data, isLoading, error, refetch } = useGet({
   </div>
 </template>
 ```
+## Parameter Examples
 
 ## Plain  Query Params:
 ```ts
@@ -105,18 +128,9 @@ paramRef: {
 // → /users/123?active=true&page=1
 ```
 
+**paramRef** supports plain values, refs, or computed refs for reactivity.
+
 All of the above support ref or computed values.
-
-# 🧪 Advanced Usage
-
-## Custom Axios
-```ts
-useGet({
-  API: customAxios,
-  url: "/example",
-  ...
-})
-```
 
 # useSend (POST, PUT, PATCH, DELETE Requests)
 
@@ -125,7 +139,7 @@ Perform mutations to create, update, or delete data:
 ```vue
 <script setup>
 import { useSend } from 'vue-query-request-utils';
-import { API } from './api'; // Custom Axios Instance
+import { API } from './api'; // Axios or Fetch client
 
 const { mutate, isLoading: isMutating, isSuccess, error } = useSend({
   API,
@@ -154,9 +168,27 @@ const createUser = () => {
 </template>
 ```
 
+## With URL Parameters
+
+Similar to useGet, use paramRef for dynamic URLs:
+
+```ts
+useSend({
+  method: 'patch',
+  url: '/users',
+  paramRef: { path: [123], query: { version: 2 } }, // Builds: /users/123?version=2
+  bodyRef: { name: 'Updated Name' }, // Fallback body if mutate() has no variables
+  // ...
+});
+```
+
+#### With Fallback Body
+
+If `mutate()` is called without variables, `bodyRef` is used (supports reactivity).
+
 ## Using with Nuxt 3
 
-The composables work seamlessly with Nuxt 3. Use them in your setup scripts or provide the Axios instance via a Nuxt plugin:
+The composables work seamlessly with Nuxt 3 and 4. Use them in your setup scripts or provide the Axios instance via a Nuxt plugin:
 
 ### Axios
 
@@ -172,19 +204,31 @@ export default defineNuxtPlugin(() => {
 });
 ```
 
+# 🧪 Advanced Usage
+
+## Custom Axios
+```ts
+useGet({
+  API: customAxios,
+  url: "/example",
+  ...
+})
+```
+
 ### Fetch
 
 ```ts
 // plugins/api.ts
 import { defineNuxtPlugin } from '#app';
-import axios from 'axios';
-import { provideApi, createFetchClient } from 'vue-query-request-utils'
+import { provideApi, createFetchClient } from 'vue-query-request-utils';
 
 export default defineNuxtPlugin(() => {
   const API = createFetchClient('https://api.example.com');
   nuxtApp.vueApp.use(provideApi(API));
 });
 ```
+
+In components (no `API` prop needed if provided globally):
 
 ```vue
 <script setup>
@@ -206,10 +250,11 @@ A composable for GET requests with @tanstack/vue-query.
 
 - url: API endpoint (e.g., /users).
 - queryKey: Unique key for caching (e.g., ['users'] or a Vue Ref).
-- API?: Axios instance for making requests.
+- API?: Override HTTP client (AxiosInstance, HttpClient, or base URL string).
 - paramRef?: Optional query parameters (e.g., { page: 1 }).
 - options?: Additional useQuery options (e.g., { enabled: false }).
-- Returns: UseQueryResult with properties like:
+
+# Returns: `UseQueryResult` with:
 
 - data: Fetched data.
 - isLoading: Loading state.
@@ -224,11 +269,14 @@ A composable for POST, PUT, PATCH, or DELETE requests.
 
 - method: HTTP method (post, put, patch, delete).
 - url: API endpoint (e.g., /users).
-- API?: Axios instance for making requests.
-- requestConfig?: Optional Axios request config (e.g., { headers: {} }).
+- API?: Override HTTP client (AxiosInstance, HttpClient, or base URL string).
+- paramRef?: Optional URL parameters (supports path/query; reactive).
+- bodyRef?: Fallback request body (reactive; used if mutate() has no variables).
+- config?: Extra request config (AxiosRequestConfig or RequestInit).
 - mutationKey?: Unique key for the mutation (e.g., ['createUser']).
 - options?: Additional useMutation options (e.g., { onSuccess }).
-- Returns: UseMutationResult with properties like:
+
+# Returns: `UseMutationResult` with properties like:
 
 - mutate: Function to trigger the mutation.
 - isLoading: Mutation in progress.

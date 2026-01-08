@@ -20,3 +20,11 @@ export type UseGetQueryOptions<
 > = MaybeRefOrGetter<UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>>;
 
 export type HttpMethod = "post" | "POST" | "put" | "PUT" | "patch" | "PATCH" | "delete" | "DELETE";
+
+export interface HttpClient {
+  get<T>(url: string): Promise<{ data: T }>;
+  post<T>(url: string, data?: any): Promise<{ data: T }>;
+  put<T>(url: string, data?: any): Promise<{ data: T }>;
+  patch<T>(url: string, data?: any): Promise<{ data: T }>;
+  delete<T>(url: string, data?: any): Promise<{ data: T }>;
+}
