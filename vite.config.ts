@@ -1,36 +1,12 @@
-import { defineConfig } from "vite";
-import dts from "vite-plugin-dts";
-import { resolve } from "path";
-import vue from "@vitejs/plugin-vue";
+import { defineConfig } from 'vitest/config'
+import dts from 'vite-plugin-dts'
+import { resolve } from 'node:path'
 
 export default defineConfig({
-  plugins: [
-    vue(),
-    dts({
-      insertTypesEntry: true,
-      outDir: "dist",
-    }),
-  ],
+  plugins: [dts({ tsconfigPath: './tsconfig.json', include: ['src/**/*.ts'], entryRoot: 'src', outDirs: 'dist' })],
   build: {
-    lib: {
-      entry: resolve(__dirname, "src/index.ts"),
-      formats: ["es"],
-      fileName: () => "index.js",
-    },
-    rollupOptions: {
-      external: ["vue", "@tanstack/vue-query", "axios"],
-    },
+    lib: { entry: { index: resolve(import.meta.dirname, 'src/index.ts'), axios: resolve(import.meta.dirname, 'src/axios.ts') }, formats: ['es'], fileName: (_format, name) => `${name}.js` },
+    rollupOptions: { external: ['vue', 'axios', '@tanstack/vue-query'] },
   },
-  test: {
-    environment: "jsdom",
-    globals: true,
-    deps: {
-      optimizer: {
-        web: {
-          include: ["@tanstack/vue-query", "vue"],
-        },
-      },
-    },
-    setupFiles: ["src/QueryComponent.vue"],
-  },
-});
+  test: { environment: 'jsdom', include: ['test/**/*.test.ts'] },
+})
